@@ -36,40 +36,34 @@ export default function Analyzer() {
   const handleAnalyze = async () => {
     if (!text.trim()) return;
     setAnalyzing(true);
-    await new Promise(r => setTimeout(r, 1800));
-    setAnalyzing(false);
 
-    // Build result based on text content
-    const isScam = text.toLowerCase().includes('fee') ||
-      text.toLowerCase().includes('gmail') ||
-      text.toLowerCase().includes('whatsapp') ||
-      text.toLowerCase().includes('urgent') ||
-      text.toLowerCase().includes('₹') && text.toLowerCase().includes('week');
+    try {
+      const response = await fetch('http://127.0.0.1:5000/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
 
-    const result = isScam ? {
-      ml_score: 85 + Math.floor(Math.random() * 10),
-      rule_score: 80 + Math.floor(Math.random() * 10),
-      risk_level: 'HIGH',
-      rule_flags: [
-        text.toLowerCase().includes('gmail') ? { text: 'Uses Gmail instead of company domain', severity: 'HIGH' } : null,
-        text.toLowerCase().includes('fee') || text.toLowerCase().includes('pay') ? { text: 'Upfront payment or registration fee requested', severity: 'HIGH' } : null,
-        text.toLowerCase().includes('urgent') || text.toLowerCase().includes('24 hour') ? { text: 'Urgency pressure tactics detected', severity: 'MEDIUM' } : null,
-        text.toLowerCase().includes('whatsapp') ? { text: 'WhatsApp-only communication (no official channel)', severity: 'MEDIUM' } : null,
-      ].filter(Boolean),
-      explanation: 'This posting shows multiple high-risk signals typical of Indian job scams. Legitimate companies never use personal Gmail accounts, charge registration fees, or pressure applicants with 24-hour deadlines. These are classic tactics used to extract money from desperate job seekers.',
-      tips: ['Never pay any registration or processing fee', 'Verify company on LinkedIn and their official website', 'Check if email domain matches the company name', 'Avoid sharing Aadhaar or PAN at application stage', 'Report suspicious jobs on the platform you found them'],
-      jobText: text,
-    } : {
-      ml_score: 8 + Math.floor(Math.random() * 15),
-      rule_score: 5 + Math.floor(Math.random() * 10),
-      risk_level: 'LOW',
-      rule_flags: [],
-      explanation: 'This posting appears legitimate. It uses an official company domain, mentions realistic salary ranges, has proper job requirements, and does not request any fees. The company appears to be a well-known organization.',
-      tips: ['Safe to apply — verify at the official company website', 'Apply through the official careers portal', 'Keep a copy of your offer letter once received'],
-      jobText: text,
-    };
+      const data = await response.json();
 
-    navigate('/results', { state: { result } });
+      const result = {
+        ml_score: data.ml_score,
+        rule_score: data.ml_score,
+        risk_level: data.risk_level.toUpperCase(),
+        rule_flags: data.rule_flags.map(f => ({ text: f, severity: 'HIGH' })),
+        explanation: data.explanation,
+        tips: data.safety_tips,
+        jobText: text,
+      };
+
+      navigate('/results', { state: { result } });
+
+    } catch (error) {
+      console.error('Backend error:', error);
+      alert('Could not connect to backend. Make sure python app.py is running.');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
@@ -218,7 +212,7 @@ export default function Analyzer() {
               animation: 'spin 0.8s linear infinite', margin: '0 auto 16px'
             }} />
             <p style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>Running 3-layer analysis...</p>
-            <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Rule Engine → ML Model → Claude AI</p>
+            <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Rule Engine → ML Model → Gemini AI</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24, opacity: 0.4 }}>
               {[100, 75, 88].map((w, i) => (
                 <div key={i} className="skeleton" style={{ height: 12, width: `${w}%`, margin: '0 auto' }} />
