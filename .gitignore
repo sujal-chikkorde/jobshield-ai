@@ -1,0 +1,24 @@
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/venv/
+ml/__pycache__/
+ml/*.pyc
+
+# ML model files (large)
+ml/model.pkl
+ml/vectorizer.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# API keys — NEVER push these
+.env
+*.env
