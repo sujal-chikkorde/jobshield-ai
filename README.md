@@ -1,4 +1,4 @@
-# 🛡️ JobShield AI — Fake Job & Internship Detector
+# JobShield AI — Fake Job & Internship Detector
 
 AI-powered tool to detect fake job and internship postings using a 3-layer pipeline.
 
