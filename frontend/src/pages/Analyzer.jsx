@@ -70,7 +70,6 @@ export default function Analyzer() {
     <div style={{ minHeight: '100vh', padding: '48px 24px' }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
 
-        {/* Header — asymmetric */}
         <div className="fade-up" style={{ marginBottom: 40 }}>
           <div style={{
             display: 'inline-block', background: 'linear-gradient(135deg, #667eea22, #764ba222)',
@@ -87,10 +86,7 @@ export default function Analyzer() {
           </p>
         </div>
 
-        {/* Main card */}
         <div className="card fade-up delay-1" style={{ padding: 32, marginBottom: 20 }}>
-
-          {/* Top row — asymmetric */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>📄</span>
@@ -98,7 +94,6 @@ export default function Analyzer() {
                 Job Description
               </span>
             </div>
-            {/* Dataset selector */}
             <select
               onChange={handleDataset}
               style={{
@@ -147,7 +142,6 @@ export default function Analyzer() {
           </div>
         </div>
 
-        {/* OCR Upload — asymmetric offset */}
         <div className="card fade-up delay-2" style={{ padding: 28, marginLeft: 40 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <span style={{ fontSize: 16 }}>📸</span>
@@ -181,7 +175,6 @@ export default function Analyzer() {
           </div>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
 
-          {/* OCR Progress */}
           {ocrLoading && (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6, color: '#64748b' }}>
@@ -194,7 +187,6 @@ export default function Analyzer() {
             </div>
           )}
 
-          {/* OCR Preview */}
           {ocrText && !ocrLoading && (
             <div style={{ marginTop: 14, padding: 14, borderRadius: 10, background: '#f0fdf4', border: '1px solid #86efac' }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', marginBottom: 6 }}>✓ Text extracted successfully</p>
@@ -203,7 +195,6 @@ export default function Analyzer() {
           )}
         </div>
 
-        {/* Loading overlay */}
         {analyzing && (
           <div className="fade-up" style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{
