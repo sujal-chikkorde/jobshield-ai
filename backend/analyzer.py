@@ -8,7 +8,7 @@ load_dotenv()
 
 # ── Client (singleton) ────────────────────────────────────────────────────────
 _client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-MODEL = "gemini-2.5-flash" # Free tier, fast, more than capable
+MODEL   = "gemini-2.5-flash"
 
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
@@ -51,11 +51,14 @@ ML FRAUD SCORE (Layer 2): {ml_score}/100
 INSTRUCTIONS:
 - Reference the specific red flags and score in your explanation. Do NOT invent new evidence.
 - Write for a college student audience: clear, direct, no jargon.
-- Be honest about uncertainty if the score is in the medium range.
+- If the score is LOW (0-30) and no flags detected, explain why the job appears LEGITIMATE — mention positive signs like official company domain, realistic salary, proper requirements, no fees.
+- If the score is MEDIUM (31-70), be honest about uncertainty and what to verify before applying.
+- If the score is HIGH (71-100), clearly explain the fraud indicators and warn the student strongly.
+- Always give 3 specific actionable safety tips relevant to the risk level.
 
 Respond with ONLY a valid JSON object in this exact format, no markdown, no preamble, no backticks:
 {{
-  "explanation": "<3 sentences max. State the overall risk, cite specific evidence from the flags/score, and give a one-sentence bottom line.>",
+  "explanation": "<3 sentences max. State the overall risk, cite specific evidence, give a bottom line.>",
   "safety_tips": [
     "<Specific action 1>",
     "<Specific action 2>",
@@ -76,18 +79,12 @@ def get_claude_explanation(
     Function name kept as get_claude_explanation so app.py needs zero changes.
 
     Args:
-        job_text:   Raw job description string (cleaned by P3's OCR pipeline).
-        rule_flags: List of red flag strings from Layer 1 (P4's rule_engine).
-        ml_score:   Integer 0-100 fraud probability from Layer 2 (P4's predictor).
+        job_text:   Raw job description string
+        rule_flags: List of red flag strings from Layer 1
+        ml_score:   Integer 0-100 fraud probability from Layer 2
 
     Returns:
-        {
-            "explanation": str,
-            "safety_tips": List[str]   # always 3 items
-        }
-
-    Raises:
-        ValueError: If Gemini returns malformed JSON.
+        { "explanation": str, "safety_tips": List[str] }
     """
     prompt = _build_prompt(job_text, rule_flags, ml_score)
 
@@ -103,7 +100,6 @@ def get_claude_explanation(
     try:
         result = json.loads(raw_text)
     except json.JSONDecodeError:
-        # Strip markdown fences if Gemini wrapped it accidentally
         match = re.search(r"\{.*\}", raw_text, re.DOTALL)
         if match:
             result = json.loads(match.group())
@@ -112,7 +108,7 @@ def get_claude_explanation(
                 f"Gemini returned non-JSON response: {raw_text[:200]}"
             )
 
-    # Guarantee schema contract with P2's frontend
+    # Guarantee schema contract with frontend
     if "explanation" not in result or "safety_tips" not in result:
         raise ValueError(
             f"Gemini response missing required keys. Got: {list(result.keys())}"
@@ -129,5 +125,5 @@ def get_claude_explanation(
 
     return {
         "explanation": result["explanation"],
-        "safety_tips": result["safety_tips"][:3],  # cap at 3
+        "safety_tips": result["safety_tips"][:3],
     }
