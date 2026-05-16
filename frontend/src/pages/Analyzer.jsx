@@ -14,7 +14,7 @@ const DATASETS = [
 export default function Analyzer() {
   const navigate = useNavigate();
   const fileRef = useRef();
-  const { extractText, progress, isLoading: ocrLoading } = useOCR();
+  const { extractText, progress, isLoading: ocrLoading, error } = useOCR();
   const [text, setText] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -191,6 +191,12 @@ export default function Analyzer() {
             <div style={{ marginTop: 14, padding: 14, borderRadius: 10, background: '#f0fdf4', border: '1px solid #86efac' }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', marginBottom: 6 }}>✓ Text extracted successfully</p>
               <p style={{ fontSize: 12, color: '#166534', lineHeight: 1.6 }}>{ocrText.slice(0, 120)}...</p>
+            </div>
+          )}
+
+          {error && (
+            <div style={{ marginTop: 14, padding: 14, borderRadius: 10, background: '#fef2f2', border: '1px solid #fca5a5' }}>
+              <p style={{ fontSize: 12, color: '#dc2626' }}>⚠️ {error}</p>
             </div>
           )}
         </div>
