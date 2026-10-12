@@ -32,8 +32,8 @@ export default function Navbar() {
           fontSize: 18, boxShadow: '0 4px 16px rgba(102,126,234,0.4)'
         }}>🛡️</div>
         <span style={{ fontWeight: 800, fontSize: 18 }}>
-          <span style={{ color: '#667eea' }}>JobShield</span>
-          <span style={{ color: '#0f172a' }}> AI</span>
+          <span style={{ color: '#667eea' }}>Scam</span>
+          <span style={{ color: '#0f172a' }}>XRay</span>
         </span>
       </div>
 

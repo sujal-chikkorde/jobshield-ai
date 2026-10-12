@@ -46,7 +46,7 @@ export default function Home() {
           letterSpacing: '0.1em', textTransform: 'uppercase',
           border: '1px solid rgba(255,255,255,0.3)',
         }}>
-          🛡️ AI-Powered Protection
+          🛡️ ScamXRay-AI-Powered Protection
         </div>
 
         <h1 className="fade-up delay-1" style={{
@@ -55,12 +55,13 @@ export default function Home() {
           lineHeight: 1.1, marginBottom: 20,
           letterSpacing: '-0.02em'
         }}>
-          Detect Fake Jobs &<br />
+          Decoding Deception:<br />
           <span style={{
             background: 'linear-gradient(90deg, #ffd89b, #ff6b9d)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
           }}>
-            Internship Scams
+            AI-Powered Risk Analysis
           </span>
         </h1>
 
@@ -68,8 +69,7 @@ export default function Home() {
           fontSize: 18, color: 'rgba(255,255,255,0.85)',
           maxWidth: 520, margin: '0 auto 36px', lineHeight: 1.7
         }}>
-          Powered by Rule Engine + Machine Learning + Claude AI.
-          Know if a job is real before you apply.
+          for Smarter Digital Interactions.
         </p>
 
         <div className="fade-up delay-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -109,7 +109,7 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <div style={{ padding: '80px 24px', maxWidth: 900, margin: '0 auto' }}>
         <h2 className="fade-up" style={{ fontSize: 36, fontWeight: 900, textAlign: 'center', marginBottom: 8 }}>
-          How JobShield Works
+          How ScamXRay Works
         </h2>
         <p className="fade-up delay-1" style={{ textAlign: 'center', color: '#64748b', marginBottom: 48, fontSize: 15 }}>
           Three simple steps to ensure your next career move is safe.

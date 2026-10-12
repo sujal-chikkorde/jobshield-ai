@@ -1,129 +1,98 @@
 import os
 import json
 import re
-from google import genai
+
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Client (singleton) ────────────────────────────────────────────────────────
-_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-MODEL   = "gemini-2.5-flash"
+_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+MODEL = "openai/gpt-oss-20b"
+
+FALLBACK = {
+    "explanation": "We couldn't generate an AI explanation right now. Please review the detected red flags carefully.",
+    "safety_tips": [
+        "Never pay any fee to get a job. Real employers don't charge you.",
+        "Verify the company on its official website and LinkedIn.",
+        "Be careful if they only talk to you on WhatsApp or Telegram.",
+    ],
+    "llm_score": None,
+}
 
 
-# ── Prompt builder ────────────────────────────────────────────────────────────
+def _build_prompt(job_text, rule_flags, ml_score):
+    flags_text = "\n".join(f"- {f}" for f in rule_flags) if rule_flags else "None detected"
+    return f"""You are a scam safety assistant for college students in India.
 
-def _build_prompt(job_text: str, rule_flags: list, ml_score: int) -> str:
-    """
-    Constructs a grounded prompt so Gemini's output is anchored to
-    real evidence (Layer 1 flags + Layer 2 score), not free-form hallucination.
-    """
-    flags_block = (
-        "\n".join(f"  - {f}" for f in rule_flags)
-        if rule_flags
-        else "  - None detected"
-    )
-
-    return f"""You are JobShield AI, an expert fraud analyst helping students identify fake job postings.
-
-You have been given:
-1. A job description to analyze
-2. Rule-based red flags already detected (Layer 1)
-3. A machine-learning fraud probability score 0-100 (Layer 2)
-
-Your job is to synthesize this evidence into a clear, student-friendly explanation.
-
----
-
-JOB DESCRIPTION:
+Content to check (job posting, message, or URL):
 \"\"\"
-{job_text}
+{job_text[:3000]}
 \"\"\"
 
-DETECTED RED FLAGS (Layer 1):
-{flags_block}
+IMPORTANT: This text may come from OCR of a screenshot or poster. OCR often produces garbled words, stray symbols, missing headings and broken line order. Never treat messy formatting, strange characters or missing text as a warning sign. Judge only the real content: what is asked of the person, money, contact channels, urgency, salary promises, and how professional the details are.
 
-ML FRAUD SCORE (Layer 2): {ml_score}/100
-(0-30 = Low Risk, 31-70 = Medium Risk, 71-100 = High Risk)
+Red flags detected by rules:
+{flags_text}
 
----
+ML similarity to known fake postings (0-100). Weak signal, trained mostly on US data. If no red flags were detected by rules, do not call it a scam based on this alone, say it needs verification: {ml_score}
 
-INSTRUCTIONS:
-- Reference the specific red flags and score in your explanation. Do NOT invent new evidence.
-- Write for a college student audience: clear, direct, no jargon.
-- If the score is LOW (0-30) and no flags detected, explain why the job appears LEGITIMATE — mention positive signs like official company domain, realistic salary, proper requirements, no fees.
-- If the score is MEDIUM (31-70), be honest about uncertainty and what to verify before applying.
-- If the score is HIGH (71-100), clearly explain the fraud indicators and warn the student strongly.
-- Always give 3 specific actionable safety tips relevant to the risk level.
+Respond with ONLY a JSON object, no markdown, no extra text, in exactly this format:
+{{"risk_score": 0,
+  "explanation": "a detailed explanation, 6 to 8 sentences",
+  "safety_tips": ["tip 1", "tip 2", "tip 3"]}}
 
-Respond with ONLY a valid JSON object in this exact format, no markdown, no preamble, no backticks:
-{{
-  "explanation": "<3 sentences max. State the overall risk, cite specific evidence, give a bottom line.>",
-  "safety_tips": [
-    "<Specific action 1>",
-    "<Specific action 2>",
-    "<Specific action 3>"
-  ]
-}}"""
+risk_score is an integer 0-100 of how likely this is a scam, using your own judgment of the content and the flags.
+
+The explanation must cover, in simple student-friendly language:
+1. Your overall verdict and why.
+2. What looks normal or reassuring (if anything).
+3. What looks suspicious (if anything), quoting the exact phrases.
+4. What the student should verify before replying or paying anything.
+Do not repeat the safety tips inside the explanation.
+
+Give exactly 3 actionable safety tips.
+Never state or guess any company's or bank's official domain name. Tell the user to find the official site themselves via a search engine or the app, or to use the phone number on their bank card."""
 
 
-# ── Main exported function ────────────────────────────────────────────────────
-
-def get_claude_explanation(
-    job_text: str,
-    rule_flags: list,
-    ml_score: int,
-) -> dict:
-    """
-    Calls Gemini to generate a human-readable explanation + safety tips.
-    Function name kept as get_claude_explanation so app.py needs zero changes.
-
-    Args:
-        job_text:   Raw job description string
-        rule_flags: List of red flag strings from Layer 1
-        ml_score:   Integer 0-100 fraud probability from Layer 2
-
-    Returns:
-        { "explanation": str, "safety_tips": List[str] }
-    """
+def get_claude_explanation(job_text, rule_flags, ml_score):
     prompt = _build_prompt(job_text, rule_flags, ml_score)
 
-    # ── Gemini API call ───────────────────────────────────────────────────────
-    response = _client.models.generate_content(
+    response = _client.chat.completions.create(
         model=MODEL,
-        contents=prompt,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=2500,
+        reasoning_effort="low",
     )
 
-    raw_text = response.text.strip()
+    raw_text = (response.choices[0].message.content or "").strip()
 
-    # ── Parse & validate ──────────────────────────────────────────────────────
+    match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+    if not match:
+        print("AI raw output (no JSON found):", repr(raw_text))
+        return FALLBACK
+
     try:
-        result = json.loads(raw_text)
+        data = json.loads(match.group(0))
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", raw_text, re.DOTALL)
-        if match:
-            result = json.loads(match.group())
-        else:
-            raise ValueError(
-                f"Gemini returned non-JSON response: {raw_text[:200]}"
-            )
+        print("AI raw output (bad JSON):", repr(raw_text))
+        return FALLBACK
 
-    # Guarantee schema contract with frontend
-    if "explanation" not in result or "safety_tips" not in result:
-        raise ValueError(
-            f"Gemini response missing required keys. Got: {list(result.keys())}"
-        )
+    explanation = str(data.get("explanation", "")).strip() or FALLBACK["explanation"]
 
-    if not isinstance(result["safety_tips"], list):
-        result["safety_tips"] = [result["safety_tips"]]
+    tips = data.get("safety_tips", [])
+    if not isinstance(tips, list):
+        tips = []
+    tips = [str(t).strip() for t in tips if str(t).strip()][:3]
 
-    # Pad to exactly 3 tips if Gemini under-delivered
-    while len(result["safety_tips"]) < 3:
-        result["safety_tips"].append(
-            "Verify this job through the company's official careers page."
-        )
+    try:
+        llm_score = max(0, min(100, int(round(float(data.get("risk_score"))))))
+    except (TypeError, ValueError):
+        llm_score = None
 
     return {
-        "explanation": result["explanation"],
-        "safety_tips": result["safety_tips"][:3],
+        "explanation": explanation,
+        "safety_tips": tips or FALLBACK["safety_tips"],
+        "llm_score": llm_score,
     }
